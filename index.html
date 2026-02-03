@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <title>Be My Valentine ❤️</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 
 <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Inter:wght@400;700&display=swap" rel="stylesheet">
 
@@ -25,6 +25,7 @@ html, body {
   display:flex;
   align-items:center;
   justify-content:center;
+  touch-action: none;
 }
 
 #fluid-canvas {
@@ -47,8 +48,8 @@ html, body {
 .glass-surface {
   position:relative;
   z-index:10;
-  width:450px;
-  padding:4rem;
+  width:min(450px, 90vw);
+  padding:clamp(2rem, 5vw, 4rem);
   text-align:center;
   border-radius:40px;
   backdrop-filter: blur(25px);
@@ -64,8 +65,8 @@ html, body {
 }
 
 .face-box {
-  width:130px;
-  height:130px;
+  width:clamp(100px, 25vw, 130px);
+  height:clamp(100px, 25vw, 130px);
   background:white;
   border-radius:50%;
   margin:0 auto 2.5rem;
@@ -121,12 +122,14 @@ html, body {
   transition:0.4s ease;
 }
 
-.face-box:hover .mouth {
-  width:26px;
-  height:26px;
-  background:red;
-  border:none;
-  clip-path: polygon(50% 80%, 100% 30%, 80% 0, 50% 20%, 20% 0, 0 30%);
+@media (hover: hover) {
+  .face-box:hover .mouth {
+    width:26px;
+    height:26px;
+    background:red;
+    border:none;
+    clip-path: polygon(50% 80%, 100% 30%, 80% 0, 50% 20%, 20% 0, 0 30%);
+  }
 }
 
 .blush {
@@ -162,28 +165,38 @@ html, body {
 h1 {
   font-family:'Dancing Script',cursive;
   color:white;
-  font-size:3.2rem;
+  font-size:clamp(2rem, 8vw, 3.2rem);
   margin-bottom:2rem;
 }
 
-.controls {position:relative;height:80px;}
+.controls {
+  position:relative;
+  height:80px;
+  display:flex;
+  gap:1rem;
+  justify-content:center;
+  align-items:center;
+}
 
 button {
-  padding:16px 50px;
+  padding:clamp(12px, 3vw, 16px) clamp(30px, 8vw, 50px);
   border-radius:20px;
   border:none;
-  font-size:1.2rem;
+  font-size:clamp(1rem, 3vw, 1.2rem);
   font-weight:700;
   cursor:pointer;
   transition:0.4s cubic-bezier(0.34,1.56,0.64,1);
+  touch-action: manipulation;
 }
 
 #yesBtn {
   background:white;
   color:var(--accent);
+  position:relative;
+  z-index:2;
 }
 
-#yesBtn:hover {transform:scale(1.25) rotate(3deg);}
+#yesBtn:hover, #yesBtn:active {transform:scale(1.25) rotate(3deg);}
 
 #noBtn {
   background:rgba(255,255,255,0.2);
@@ -204,7 +217,7 @@ button {
 }
 
 .panda {
-  font-size:100px;
+  font-size:clamp(60px, 15vw, 100px);
   animation: jump 0.6s infinite alternate;
 }
 
@@ -213,7 +226,6 @@ button {
   to { transform:translateY(-30px); }
 }
 
-/* FULL PAGE HEART RAIN */
 #heart-rain {
   position:fixed;
   inset:0;
@@ -228,6 +240,11 @@ button {
 @keyframes rain {
   from {transform:translateY(-50px) scale(0.5); opacity:1;}
   to {transform:translateY(110vh) scale(1.5); opacity:0;}
+}
+
+@media (max-width: 600px) {
+  .controls { height:60px; }
+  .glass-surface { padding:2rem 1.5rem; }
 }
 </style>
 </head>
@@ -267,69 +284,206 @@ button {
 <div id="heart-rain"></div>
 
 <script>
-// FACE FOLLOW
-document.addEventListener("mousemove", e=>{
-  document.documentElement.style.setProperty("--cursor-x", e.clientX+"px");
-  document.documentElement.style.setProperty("--cursor-y", e.clientY+"px");
-  const face=document.getElementById("face");
-  const rect=face.getBoundingClientRect();
-  const cx=rect.left+rect.width/2;
-  const cy=rect.top+rect.height/2;
-  document.querySelectorAll(".pupil").forEach(p=>{
-    const angle=Math.atan2(e.clientY-cy,e.clientX-cx);
-    p.style.transform=`translate(${Math.cos(angle)*6}px,${Math.sin(angle)*6}px)`;
-  });
-});
+// UNIFIED POINTER HANDLING (mouse + touch)
+let currentX = window.innerWidth / 2;
+let currentY = window.innerHeight / 2;
 
-// NO BUTTON RUN
-const noBtn=document.getElementById("noBtn");
-noBtn.onmouseover=()=>{
-  noBtn.style.left=Math.random()*300+"px";
-  noBtn.style.top=Math.random()*120+"px";
-};
+function handlePointer(e) {
+  const x = e.touches ? e.touches[0].clientX : e.clientX;
+  const y = e.touches ? e.touches[0].clientY : e.clientY;
+  
+  currentX = x;
+  currentY = y;
+  
+  document.documentElement.style.setProperty("--cursor-x", x + "px");
+  document.documentElement.style.setProperty("--cursor-y", y + "px");
+  
+  const face = document.getElementById("face");
+  const rect = face.getBoundingClientRect();
+  const cx = rect.left + rect.width / 2;
+  const cy = rect.top + rect.height / 2;
+  
+  document.querySelectorAll(".pupil").forEach(p => {
+    const angle = Math.atan2(y - cy, x - cx);
+    p.style.transform = `translate(${Math.cos(angle) * 6}px, ${Math.sin(angle) * 6}px)`;
+  });
+}
+
+document.addEventListener("mousemove", handlePointer);
+document.addEventListener("touchmove", handlePointer, { passive: true });
+document.addEventListener("touchstart", handlePointer, { passive: true });
+
+// NO BUTTON RUN (enhanced for mobile)
+const noBtn = document.getElementById("noBtn");
+const controlsBox = document.querySelector(".controls");
+
+function moveNoButton() {
+  const maxX = controlsBox.offsetWidth - noBtn.offsetWidth;
+  const maxY = controlsBox.offsetHeight - noBtn.offsetHeight;
+  
+  noBtn.style.left = Math.random() * maxX + "px";
+  noBtn.style.top = Math.random() * maxY + "px";
+}
+
+noBtn.addEventListener("mouseover", moveNoButton);
+noBtn.addEventListener("touchstart", (e) => {
+  e.preventDefault();
+  moveNoButton();
+}, { passive: false });
 
 // HEART RAIN FUNCTION
-function startHeartRain(){
-  const container=document.getElementById("heart-rain");
-  const interval=setInterval(()=>{
-    for(let i=0;i<5;i++){
-      const h=document.createElement("div");
-      h.className="rain-heart";
-      h.textContent="❤️";
-      h.style.left=Math.random()*100+"vw";
-      h.style.fontSize=(20+Math.random()*30)+"px";
+function startHeartRain() {
+  const container = document.getElementById("heart-rain");
+  const interval = setInterval(() => {
+    for (let i = 0; i < 5; i++) {
+      const h = document.createElement("div");
+      h.className = "rain-heart";
+      h.textContent = "❤️";
+      h.style.left = Math.random() * 100 + "vw";
+      h.style.fontSize = (20 + Math.random() * 30) + "px";
       container.appendChild(h);
-      setTimeout(()=>h.remove(),3000);
+      setTimeout(() => h.remove(), 3000);
     }
-  },200);
-  setTimeout(()=>clearInterval(interval),4000);
+  }, 200);
+  setTimeout(() => clearInterval(interval), 4000);
 }
 
 // YES BUTTON
-document.getElementById("yesBtn").onclick=()=>{
-  document.getElementById("main-card").style.display="none";
-  document.getElementById("success-layer").style.display="flex";
+function handleYes() {
+  document.getElementById("main-card").style.display = "none";
+  document.getElementById("success-layer").style.display = "flex";
   startHeartRain();
-};
-
-// BASIC WEBGL FLUID BACKGROUND (SAFE)
-const canvas=document.getElementById("fluid-canvas");
-const gl=canvas.getContext("webgl",{alpha:true});
-if(!gl){alert("WebGL not supported");}
-gl.getExtension("OES_texture_float");
-gl.getExtension("OES_texture_float_linear");
-
-canvas.width=window.innerWidth;
-canvas.height=window.innerHeight;
-window.onresize=()=>{canvas.width=innerWidth;canvas.height=innerHeight;};
-
-// Simple animated gradient (lightweight safe)
-function draw(){
-  gl.clearColor(Math.random()*0.1,0.1,0.1,0.02);
-  gl.clear(gl.COLOR_BUFFER_BIT);
-  requestAnimationFrame(draw);
 }
-draw();
+
+document.getElementById("yesBtn").addEventListener("click", handleYes);
+document.getElementById("yesBtn").addEventListener("touchend", (e) => {
+  e.preventDefault();
+  handleYes();
+});
+
+// ENHANCED WEBGL2 FLUID SHADER
+const canvas = document.getElementById("fluid-canvas");
+const gl = canvas.getContext("webgl2", { alpha: true, antialias: false });
+
+if (!gl) {
+  console.warn("WebGL2 not supported, using fallback");
+} else {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  
+  window.addEventListener("resize", () => {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    gl.viewport(0, 0, canvas.width, canvas.height);
+  });
+
+  // Vertex shader
+  const vertexShaderSource = `#version 300 es
+    in vec2 position;
+    void main() {
+      gl_Position = vec4(position, 0.0, 1.0);
+    }
+  `;
+
+  // Fragment shader with fluid-like effect
+  const fragmentShaderSource = `#version 300 es
+    precision highp float;
+    uniform vec2 resolution;
+    uniform float time;
+    uniform vec2 pointer;
+    out vec4 fragColor;
+
+    float noise(vec2 p) {
+      return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
+    }
+
+    void main() {
+      vec2 uv = gl_FragCoord.xy / resolution;
+      vec2 center = pointer / resolution;
+      
+      float dist = length(uv - center);
+      float ripple = sin(dist * 20.0 - time * 3.0) * 0.5 + 0.5;
+      ripple *= exp(-dist * 3.0);
+      
+      vec2 offset = uv - 0.5;
+      float angle = atan(offset.y, offset.x);
+      float radius = length(offset);
+      
+      float swirl = sin(radius * 8.0 - time + angle * 3.0) * 0.5 + 0.5;
+      float n = noise(uv * 5.0 + time * 0.2);
+      
+      vec3 color1 = vec3(1.0, 0.7, 0.76); // #ffb3c1
+      vec3 color2 = vec3(1.0, 0.56, 0.64); // #ff8fa3
+      vec3 color3 = vec3(0.98, 0.44, 0.57); // #fb6f92
+      
+      vec3 col = mix(color2, color1, ripple * 0.3);
+      col = mix(col, color3, swirl * 0.2 + n * 0.1);
+      
+      fragColor = vec4(col, 0.4);
+    }
+  `;
+
+  function createShader(type, source) {
+    const shader = gl.createShader(type);
+    gl.shaderSource(shader, source);
+    gl.compileShader(shader);
+    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+      console.error(gl.getShaderInfoLog(shader));
+      gl.deleteShader(shader);
+      return null;
+    }
+    return shader;
+  }
+
+  const vertexShader = createShader(gl.VERTEX_SHADER, vertexShaderSource);
+  const fragmentShader = createShader(gl.FRAGMENT_SHADER, fragmentShaderSource);
+
+  const program = gl.createProgram();
+  gl.attachShader(program, vertexShader);
+  gl.attachShader(program, fragmentShader);
+  gl.linkProgram(program);
+
+  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+    console.error(gl.getProgramInfoLog(program));
+  }
+
+  const positionBuffer = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+    -1, -1, 1, -1, -1, 1,
+    -1, 1, 1, -1, 1, 1
+  ]), gl.STATIC_DRAW);
+
+  const positionLoc = gl.getAttribLocation(program, "position");
+  const resolutionLoc = gl.getUniformLocation(program, "resolution");
+  const timeLoc = gl.getUniformLocation(program, "time");
+  const pointerLoc = gl.getUniformLocation(program, "pointer");
+
+  gl.useProgram(program);
+  gl.enableVertexAttribArray(positionLoc);
+  gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+  gl.vertexAttribPointer(positionLoc, 2, gl.FLOAT, false, 0, 0);
+
+  gl.enable(gl.BLEND);
+  gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+
+  let startTime = Date.now();
+  function draw() {
+    const time = (Date.now() - startTime) * 0.001;
+    
+    gl.viewport(0, 0, canvas.width, canvas.height);
+    gl.clearColor(0, 0, 0, 0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    
+    gl.uniform2f(resolutionLoc, canvas.width, canvas.height);
+    gl.uniform1f(timeLoc, time);
+    gl.uniform2f(pointerLoc, currentX, canvas.height - currentY);
+    
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+    requestAnimationFrame(draw);
+  }
+  draw();
+}
 </script>
 </body>
 </html>
